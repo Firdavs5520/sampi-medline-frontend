@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Nurse from "./pages/Nurse";
-import Medicines from "./pages/medicines";
+import Medicines from "./pages/Medicines";
 import Manager from "./pages/Manager";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NurseLayout from "./layouts/NurseLayout";
