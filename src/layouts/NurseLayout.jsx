@@ -1,18 +1,72 @@
+import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
+import { FiX } from "react-icons/fi";
 
 export default function NurseLayout() {
-  return (
-    <div className="flex min-h-screen bg-slate-50">
-      <Sidebar />
+  const [mobileMenu, setMobileMenu] = useState(false);
 
-      <div className="flex-1">
-        <Navbar />
-        <main className="p-6">
+  return (
+    <div className="min-h-screen bg-slate-100 flex flex-col">
+      {/* ===================== */}
+      {/* NAVBAR */}
+      {/* ===================== */}
+      <Navbar onMenuClick={() => setMobileMenu(true)} />
+
+      {/* ===================== */}
+      {/* BODY */}
+      {/* ===================== */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* DESKTOP SIDEBAR */}
+        <aside className="hidden lg:block w-64 bg-white border-r">
+          <Sidebar />
+        </aside>
+
+        {/* MAIN */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
           <Outlet />
         </main>
       </div>
+
+      {/* ===================== */}
+      {/* MOBILE SIDEBAR */}
+      {/* ===================== */}
+      {mobileMenu && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          {/* OVERLAY */}
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setMobileMenu(false)}
+          />
+
+          {/* SLIDE MENU */}
+          <div
+            className="
+              absolute left-0 top-0 bottom-0 w-72
+              bg-white shadow-xl
+              animate-slide-in
+              flex flex-col
+            "
+          >
+            {/* HEADER */}
+            <div className="flex items-center justify-between px-4 py-4 border-b">
+              <h3 className="font-semibold text-gray-800">Hamshira menyusi</h3>
+              <button
+                onClick={() => setMobileMenu(false)}
+                className="p-2 rounded-lg hover:bg-gray-100"
+              >
+                <FiX size={20} />
+              </button>
+            </div>
+
+            {/* MENU ITEMS */}
+            <div className="flex-1 overflow-y-auto">
+              <Sidebar onItemClick={() => setMobileMenu(false)} mobile />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
