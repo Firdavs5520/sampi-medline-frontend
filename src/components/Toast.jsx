@@ -1,25 +1,45 @@
-import { FiCheckCircle, FiAlertCircle } from "react-icons/fi";
+import { Toaster } from "react-hot-toast";
+import { FiCheck, FiX, FiLoader } from "react-icons/fi";
 
-export default function Toast({ type = "success", message }) {
-  const styles =
-    type === "success"
-      ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-      : "bg-red-50 border-red-200 text-red-600";
-
-  const Icon = type === "success" ? FiCheckCircle : FiAlertCircle;
-
+export default function AppToast() {
   return (
-    <div
-      className={`
-        fixed top-4 right-4 z-50
-        flex items-center gap-3
-        px-4 py-3 rounded-xl border
-        shadow-lg animate-toast
-        ${styles}
-      `}
+    <Toaster
+      position="bottom-center"
+      toastOptions={{
+        duration: 1200,
+        style: {
+          background: "transparent",
+          boxShadow: "none",
+        },
+      }}
     >
-      <Icon className="text-xl" />
-      <span className="text-sm font-medium">{message}</span>
-    </div>
+      {(t) => (
+        <div
+          className={`
+            flex items-center justify-center
+            w-14 h-14 rounded-full
+            shadow-xl
+            transition-all
+            ${t.visible ? "animate-toast-in" : "animate-toast-out"}
+            ${
+              t.type === "success"
+                ? "bg-brand-green"
+                : t.type === "error"
+                  ? "bg-brand-red"
+                  : "bg-brand-violet"
+            }
+          `}
+          style={{
+            marginBottom: "90px", // 👈 bottom-nav ustida
+          }}
+        >
+          {t.type === "loading" && (
+            <FiLoader className="text-white text-2xl animate-spin" />
+          )}
+          {t.type === "success" && <FiCheck className="text-white text-2xl" />}
+          {t.type === "error" && <FiX className="text-white text-2xl" />}
+        </div>
+      )}
+    </Toaster>
   );
 }

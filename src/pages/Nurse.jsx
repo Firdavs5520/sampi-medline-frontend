@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { Toaster, toast } from "react-hot-toast";
+import { motion, AnimatePresence } from "framer-motion";
 import api from "../api/axios";
 import {
   FiPlus,
@@ -11,11 +10,89 @@ import {
   FiSave,
 } from "react-icons/fi";
 
+/* ===================== */
+/* INLINE STATUS (LOGIN STYLE) */
+/* ===================== */
+function InlineStatus({ status }) {
+  if (!status) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.6 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.6 }}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+      className="flex justify-center mt-6"
+    >
+      <div
+        className={`
+          w-14 h-14 rounded-full shadow-xl
+          flex items-center justify-center
+          ${
+            status === "loading"
+              ? "bg-brand-violet"
+              : status === "success"
+                ? "bg-green-500"
+                : "bg-red-500"
+          }
+        `}
+      >
+        {status === "loading" && (
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+            className="w-6 h-6 border-2 border-white border-t-transparent rounded-full"
+          />
+        )}
+
+        {status === "success" && (
+          <motion.svg
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="w-7 h-7 text-white"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M5 13l4 4L19 7"
+            />
+          </motion.svg>
+        )}
+
+        {status === "error" && (
+          <motion.svg
+            initial={{ rotate: -90, scale: 0 }}
+            animate={{ rotate: 0, scale: 1 }}
+            className="w-6 h-6 text-white"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </motion.svg>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+/* ===================== */
+/* MAIN COMPONENT */
+/* ===================== */
 export default function Nurse() {
   const [patientName, setPatientName] = useState("");
   const [medicines, setMedicines] = useState([]);
   const [cart, setCart] = useState([]);
-  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState(null); // null | loading | success | error
 
   /* ===================== */
   /* FETCH MEDICINES */
@@ -24,7 +101,7 @@ export default function Nurse() {
     api
       .get("/medicines")
       .then((res) => setMedicines(res.data))
-      .catch(() => toast.error("Dorilarni yuklashda xatolik yuz berdi"));
+      .catch(() => setStatus("error"));
   }, []);
 
   /* ===================== */
@@ -63,12 +140,13 @@ export default function Nurse() {
   /* ===================== */
   const save = async () => {
     if (!patientName || cart.length === 0) {
-      toast.error("Bemor va dorilarni tanlang");
+      setStatus("error");
+      setTimeout(() => setStatus(null), 1200);
       return;
     }
 
     try {
-      setSaving(true);
+      setStatus("loading");
 
       for (const i of cart) {
         await api.post("/administrations", {
@@ -81,18 +159,17 @@ export default function Nurse() {
 
       setPatientName("");
       setCart([]);
-      toast.success("Dorilar muvaffaqiyatli saqlandi");
+
+      setStatus("success");
+      setTimeout(() => setStatus(null), 1500);
     } catch {
-      toast.error("Maʼlumotlarni saqlashda xatolik");
-    } finally {
-      setSaving(false);
+      setStatus("error");
+      setTimeout(() => setStatus(null), 1500);
     }
   };
 
   return (
-    <div className="pb-28">
-      <Toaster position="top-center" />
-
+    <div className="pb-32 max-w-7xl mx-auto">
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -102,12 +179,7 @@ export default function Nurse() {
         {/* ===================== */}
         {/* MEDICINES */}
         {/* ===================== */}
-        <motion.div
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.1 }}
-          className="lg:col-span-2 bg-white rounded-3xl shadow-xl p-6"
-        >
+        <div className="lg:col-span-2 bg-white rounded-3xl shadow-xl p-6">
           <h2 className="flex items-center gap-2 text-lg font-semibold text-brand-dark mb-4">
             <FiPackage className="text-brand-violet" />
             Dorilar
@@ -116,8 +188,8 @@ export default function Nurse() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {medicines.map((m) => (
               <motion.button
-                whileTap={{ scale: 0.96 }}
                 key={m._id}
+                whileTap={{ scale: 0.96 }}
                 onClick={() => addMedicine(m)}
                 className="
                   border rounded-2xl p-4 text-left
@@ -132,17 +204,12 @@ export default function Nurse() {
               </motion.button>
             ))}
           </div>
-        </motion.div>
+        </div>
 
         {/* ===================== */}
         {/* PATIENT + CART */}
         {/* ===================== */}
-        <motion.div
-          initial={{ opacity: 0, x: 30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white rounded-3xl shadow-xl p-6 flex flex-col"
-        >
+        <div className="bg-white rounded-3xl shadow-xl p-6 flex flex-col">
           <h3 className="flex items-center gap-2 font-semibold text-brand-dark mb-4">
             <FiUser className="text-brand-red" />
             Bemor
@@ -158,7 +225,6 @@ export default function Nurse() {
             onChange={(e) => setPatientName(e.target.value)}
           />
 
-          {/* CART */}
           <div className="space-y-3 flex-1">
             {cart.length === 0 && (
               <p className="text-sm text-gray-500">Dorilar tanlanmagan</p>
@@ -197,17 +263,15 @@ export default function Nurse() {
             ))}
           </div>
 
-          {/* TOTAL */}
-          <div className="mt-4 flex items-center justify-between font-semibold text-brand-dark">
+          <div className="mt-4 flex justify-between font-semibold text-brand-dark">
             <span>Jami</span>
             <span>{total.toLocaleString()} so‘m</span>
           </div>
 
-          {/* SAVE */}
           <motion.button
             whileTap={{ scale: 0.97 }}
             onClick={save}
-            disabled={saving}
+            disabled={status === "loading"}
             className="
               mt-4 flex items-center justify-center gap-2
               bg-brand-red hover:bg-red-700
@@ -216,9 +280,14 @@ export default function Nurse() {
             "
           >
             <FiSave />
-            {saving ? "Saqlanmoqda..." : "Saqlash"}
+            Saqlash
           </motion.button>
-        </motion.div>
+
+          {/* LOGIN STYLE STATUS */}
+          <AnimatePresence>
+            <InlineStatus status={status} />
+          </AnimatePresence>
+        </div>
       </motion.div>
     </div>
   );

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Toaster, toast } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import {
   HiOutlineMail,
   HiOutlineLockClosed,
@@ -10,6 +10,7 @@ import {
 } from "react-icons/hi";
 import { FaClinicMedical } from "react-icons/fa";
 import api from "../api/axios";
+import AppToast from "../components/Toast";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -34,39 +35,32 @@ export default function Login() {
   }, [navigate]);
 
   /* ===================== */
-  /* LOGIN HANDLER */
+  /* LOGIN */
   /* ===================== */
   const handleLogin = async (e) => {
     e.preventDefault();
-
-    if (!email || !password) {
-      toast.error("Email va parolni kiriting");
-      return;
-    }
+    if (!email || !password) return;
 
     setLoading(true);
+
+    const toastId = toast.loading("");
 
     try {
       const res = await api.post("/auth/login", { email, password });
       const { token, role } = res.data;
 
-      if (!token || !role) {
-        throw new Error("Auth xato");
-      }
-
       localStorage.setItem("token", token);
       localStorage.setItem("role", role);
 
-      toast.success("Muvaffaqiyatli kirildi");
+      toast.success("", { id: toastId });
 
       setTimeout(() => {
         navigate(role === "manager" ? "/manager" : "/nurse", {
           replace: true,
         });
-      }, 800);
-    } catch (err) {
-      console.error(err);
-      toast.error("Login yoki parol noto‘g‘ri");
+      }, 600);
+    } catch {
+      toast.error("", { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -74,7 +68,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-brand-gradient px-4">
-      <Toaster position="top-center" reverseOrder={false} />
+      <AppToast />
 
       <motion.div
         initial={{ opacity: 0, y: 40 }}
@@ -87,7 +81,6 @@ export default function Login() {
           <FaClinicMedical size={32} />
         </div>
 
-        {/* TITLE */}
         <h1 className="mt-10 text-3xl font-bold text-center text-brand-dark">
           Sampi Medline
         </h1>
@@ -95,9 +88,7 @@ export default function Login() {
           Klinikani boshqarish tizimi
         </p>
 
-        {/* FORM */}
         <form onSubmit={handleLogin} className="space-y-5">
-          {/* EMAIL */}
           <div className="relative">
             <HiOutlineMail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl" />
             <input
@@ -105,11 +96,10 @@ export default function Login() {
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-brand-violet focus:border-brand-violet outline-none transition"
+              className="w-full pl-12 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-brand-violet outline-none"
             />
           </div>
 
-          {/* PASSWORD */}
           <div className="relative">
             <HiOutlineLockClosed className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl" />
             <input
@@ -117,13 +107,13 @@ export default function Login() {
               placeholder="Parol"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-12 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-brand-violet focus:border-brand-violet outline-none transition"
+              className="w-full pl-12 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-brand-violet outline-none"
             />
 
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-brand-violet"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"
             >
               {showPassword ? (
                 <HiOutlineEyeOff size={22} />
@@ -133,20 +123,14 @@ export default function Login() {
             </button>
           </div>
 
-          {/* BUTTON */}
           <motion.button
             whileTap={{ scale: 0.97 }}
             disabled={loading}
-            className="w-full bg-brand-red hover:bg-red-700 text-white py-3 rounded-xl font-semibold transition disabled:opacity-60"
+            className="w-full bg-brand-red hover:bg-red-700 text-white py-3 rounded-xl font-semibold disabled:opacity-60"
           >
-            {loading ? "⏳ Kirilmoqda..." : "Kirish"}
+            Kirish
           </motion.button>
         </form>
-
-        {/* FOOTER */}
-        <p className="text-xs text-center text-gray-400 mt-8">
-          © {new Date().getFullYear()} Sampi Medline
-        </p>
       </motion.div>
     </div>
   );
