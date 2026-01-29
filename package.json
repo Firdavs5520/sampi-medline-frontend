@@ -13,6 +13,8 @@
     "axios": "^1.13.3",
     "chart.js": "^4.5.1",
     "framer-motion": "^12.29.2",
+    "framework7": "^9.0.2",
+    "framework7-react": "^9.0.2",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.0.0",
     "react": "^19.2.0",
