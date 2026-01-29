@@ -24,7 +24,7 @@ export default function Navbar() {
       <>
         {/* DESKTOP */}
         <header
-          className="hidden lg:flex fixed top-0 left-0 right-0 z-50
+          className="hidden lg:flex  top-0 left-0 right-0 z-50
           bg-white/70 backdrop-blur-xl
           border-b border-white/40
           px-6 py-3
