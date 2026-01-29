@@ -8,7 +8,7 @@ import NurseLayout from "./layouts/NurseLayout";
 
 export default function App() {
   return (
-    <Routes>
+    <Routes className="font-golos">
       {/* Login */}
       <Route path="/login" element={<Login />} />
 

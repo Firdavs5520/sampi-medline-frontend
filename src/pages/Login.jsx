@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "react-hot-toast";
@@ -17,6 +17,9 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const emailRef = useRef(null);
+  const passwordRef = useRef(null);
 
   const navigate = useNavigate();
 
@@ -42,7 +45,6 @@ export default function Login() {
     if (!email || !password) return;
 
     setLoading(true);
-
     const toastId = toast.loading("");
 
     try {
@@ -70,6 +72,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-brand-gradient px-4">
       <AppToast />
 
+      {/* CARD ANIMATION OK — INPUTLAR ICHIDA EMAS */}
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
@@ -89,30 +92,54 @@ export default function Login() {
         </p>
 
         <form onSubmit={handleLogin} className="space-y-5">
-          <div className="relative">
-            <HiOutlineMail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl" />
+          {/* EMAIL */}
+          <div className="relative" onClick={() => emailRef.current?.focus()}>
+            <HiOutlineMail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl pointer-events-none" />
             <input
+              ref={emailRef}
               type="email"
+              inputMode="email"
+              enterKeyHint="next"
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-brand-violet outline-none"
+              className="
+                w-full pl-12 pr-4 py-3
+                border rounded-xl
+                focus:ring-2 focus:ring-brand-violet
+                outline-none
+              "
             />
           </div>
 
-          <div className="relative">
-            <HiOutlineLockClosed className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl" />
+          {/* PASSWORD */}
+          <div
+            className="relative"
+            onClick={() => passwordRef.current?.focus()}
+          >
+            <HiOutlineLockClosed className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl pointer-events-none" />
             <input
+              ref={passwordRef}
               type={showPassword ? "text" : "password"}
+              inputMode="text"
+              enterKeyHint="done"
               placeholder="Parol"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-12 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-brand-violet outline-none"
+              className="
+                w-full pl-12 pr-12 py-3
+                border rounded-xl
+                focus:ring-2 focus:ring-brand-violet
+                outline-none
+              "
             />
 
             <button
               type="button"
-              onClick={() => setShowPassword(!showPassword)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowPassword(!showPassword);
+              }}
               className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"
             >
               {showPassword ? (
@@ -123,10 +150,15 @@ export default function Login() {
             </button>
           </div>
 
+          {/* BUTTON */}
           <motion.button
             whileTap={{ scale: 0.97 }}
             disabled={loading}
-            className="w-full bg-brand-red hover:bg-red-700 text-white py-3 rounded-xl font-semibold disabled:opacity-60"
+            className="
+              w-full bg-brand-red hover:bg-red-700
+              text-white py-3 rounded-xl font-semibold
+              disabled:opacity-60
+            "
           >
             Kirish
           </motion.button>

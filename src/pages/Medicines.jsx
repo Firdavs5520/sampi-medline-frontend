@@ -231,7 +231,7 @@ export default function Medicines() {
 
           <button
             onClick={addMedicine}
-            className="bg-brand-red text-white rounded-xl font-semibold"
+            className="bg-brand-red text-white rounded-xl font-semibold py-3"
           >
             Qo‘shish
           </button>
