@@ -23,7 +23,7 @@ export default function AppToast() {
             ${t.visible ? "animate-toast-in" : "animate-toast-out"}
             ${
               t.type === "success"
-                ? "bg-brand-green"
+                ? "bg-green-600"
                 : t.type === "error"
                   ? "bg-brand-red"
                   : "bg-brand-violet"
