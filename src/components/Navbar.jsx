@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FiUser, FiPackage, FiRefreshCw, FiLogOut } from "react-icons/fi";
+import { FiActivity } from "react-icons/fi";
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -104,7 +105,9 @@ function MobileNurseNav() {
         >
           <FiUser size={34} />
         </motion.button>
-
+        <button onClick={() => navigate("/nurse/services")}>
+          <FiActivity />
+        </button>
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={() => navigate("/nurse/medicines")}

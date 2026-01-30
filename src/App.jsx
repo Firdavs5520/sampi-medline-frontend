@@ -5,6 +5,7 @@ import Medicines from "./pages/Medicines";
 import Manager from "./pages/Manager";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NurseLayout from "./layouts/NurseLayout";
+import NurseServices from "./pages/NurseServices";
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
         <Route element={<NurseLayout />}>
           <Route path="/nurse" element={<Nurse />} />
           <Route path="/nurse/medicines" element={<Medicines />} />
+          <Route path="/nurse/services" element={<NurseServices />} />
         </Route>
       </Route>
 
