@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { FiUser, FiPackage, FiLogOut } from "react-icons/fi";
+import { FiUser, FiPackage, FiActivity, FiLogOut } from "react-icons/fi";
 
 export default function Sidebar({ mobile = false, onItemClick }) {
   const navigate = useNavigate();
@@ -48,6 +48,18 @@ export default function Sidebar({ mobile = false, onItemClick }) {
         >
           <FiPackage className="text-lg" />
           <span>Dorilar</span>
+        </NavLink>
+
+        {/* 🔹 YANGI: XIZMATLAR */}
+        <NavLink
+          to="/nurse/services"
+          onClick={onItemClick}
+          className={({ isActive }) =>
+            `${linkBase} ${isActive ? active : inactive}`
+          }
+        >
+          <FiActivity className="text-lg" />
+          <span>Xizmatlar</span>
         </NavLink>
       </nav>
 

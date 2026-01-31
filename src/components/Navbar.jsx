@@ -25,10 +25,10 @@ export default function Navbar() {
       <>
         {/* DESKTOP */}
         <header
-          className="hidden lg:flex  top-0 left-0 right-0 z-50
+          className=" hidden lg:flex  top-0 left-0 right-0 z-50
           bg-white/70 backdrop-blur-xl
           border-b border-white/40
-          px-6 py-3
+          px-6 py-3 
           items-center justify-between
         "
         >
@@ -36,7 +36,7 @@ export default function Navbar() {
             Sampi Medline
           </span>
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 ">
             <button
               onClick={refresh}
               className="p-2 rounded-xl hover:bg-black/5 transition"
@@ -73,8 +73,9 @@ function MobileNurseNav() {
   const location = useLocation();
 
   const item = (active) =>
-    `w-10 h-10 flex items-center justify-center    
-     ${active ? "bg-white/80 text-brand-violet" : "text-gray-600"}
+    `w-12 h-12 flex items-center justify-center rounded-xl
+     transition
+     ${active ? "bg-white/80 text-brand-violet" : "text-gray-600 hover:bg-white/40"}
     `;
 
   return (
@@ -98,32 +99,43 @@ function MobileNurseNav() {
           shadow-[0_20px_50px_rgba(0,0,0,0.18)]
         "
       >
+        {/* 👤 Nurse main */}
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={() => navigate("/nurse")}
           className={item(location.pathname === "/nurse")}
         >
-          <FiUser size={34} />
+          <FiUser size={30} />
         </motion.button>
-        <button onClick={() => navigate("/nurse/services")}>
-          <FiActivity />
-        </button>
+
+        {/* 🩺 Services */}
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={() => navigate("/nurse/services")}
+          className={item(location.pathname === "/nurse/services")}
+        >
+          <FiActivity size={30} />
+        </motion.button>
+
+        {/* 📦 Medicines */}
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={() => navigate("/nurse/medicines")}
           className={item(location.pathname === "/nurse/medicines")}
         >
-          <FiPackage size={34} />
+          <FiPackage size={30} />
         </motion.button>
 
+        {/* 🔄 Refresh */}
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={() => window.location.reload()}
           className={item(false)}
         >
-          <FiRefreshCw size={34} />
+          <FiRefreshCw size={30} />
         </motion.button>
 
+        {/* 🚪 Logout */}
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={() => {
@@ -131,9 +143,9 @@ function MobileNurseNav() {
             navigate("/login", { replace: true });
           }}
           className="w-12 h-12 flex items-center justify-center
-            rounded-full text-brand-red hover:bg-red-50 transition"
+            rounded-xl text-brand-red hover:bg-red-50 transition"
         >
-          <FiLogOut size={34} />
+          <FiLogOut size={30} />
         </motion.button>
       </div>
     </nav>

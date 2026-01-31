@@ -33,7 +33,7 @@ function InlineStatus({ status }) {
             status === "loading"
               ? "bg-brand-violet"
               : status === "success"
-                ? "bg-green-500"
+                ? "bg-green-600"
                 : "bg-red-500"
           }
         `}

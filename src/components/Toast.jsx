@@ -18,7 +18,7 @@ export default function AppToast() {
           className={`
             flex items-center justify-center
             w-14 h-14 rounded-full
-            shadow-xl
+            
             transition-all
             ${t.visible ? "animate-toast-in" : "animate-toast-out"}
             ${
@@ -26,7 +26,7 @@ export default function AppToast() {
                 ? "bg-green-600"
                 : t.type === "error"
                   ? "bg-brand-red"
-                  : "bg-brand-violet"
+                  : ""
             }
           `}
           style={{
@@ -34,7 +34,7 @@ export default function AppToast() {
           }}
         >
           {t.type === "loading" && (
-            <FiLoader className="text-white text-2xl animate-spin" />
+            <FiLoader className="text-white text-5xl animate-spin" />
           )}
           {t.type === "success" && <FiCheck className="text-white text-2xl" />}
           {t.type === "error" && <FiX className="text-white text-2xl" />}
