@@ -1,11 +1,28 @@
-import { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Outlet, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { FiX } from "react-icons/fi";
+import { getRole, isLoggedIn, logout } from "../utils/auth";
 
 export default function NurseLayout() {
   const [mobileMenu, setMobileMenu] = useState(false);
+  const navigate = useNavigate();
+
+  /* ===================== */
+  /* ROLE GUARD (DOUBLE CHECK) */
+  /* ===================== */
+  useEffect(() => {
+    if (!isLoggedIn()) {
+      logout();
+      return;
+    }
+
+    const role = getRole();
+    if (role !== "nurse") {
+      navigate("/login", { replace: true });
+    }
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
@@ -17,13 +34,13 @@ export default function NurseLayout() {
       {/* ===================== */}
       {/* BODY */}
       {/* ===================== */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1">
         {/* DESKTOP SIDEBAR */}
         <aside className="hidden lg:block w-64 bg-white border-r">
-          <Sidebar />
+          <Sidebar role="nurse" />
         </aside>
 
-        {/* MAIN */}
+        {/* MAIN CONTENT */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6">
           <Outlet />
         </main>
@@ -62,7 +79,11 @@ export default function NurseLayout() {
 
             {/* MENU ITEMS */}
             <div className="flex-1 overflow-y-auto">
-              <Sidebar onItemClick={() => setMobileMenu(false)} mobile />
+              <Sidebar
+                role="nurse"
+                mobile
+                onItemClick={() => setMobileMenu(false)}
+              />
             </div>
           </div>
         </div>

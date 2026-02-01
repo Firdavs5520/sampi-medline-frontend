@@ -1,46 +1,59 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Outlet, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import { FiX } from "react-icons/fi";
+import { getRole, isLoggedIn, logout } from "../utils/auth";
 
-export default function DashboardLayout({
-  title,
-  sidebarItems = [],
-  children,
-}) {
+/**
+ * Universal Dashboard Layout
+ * role: "nurse" | "manager" | "delivery"
+ */
+export default function DashboardLayout({ role }) {
   const [mobileMenu, setMobileMenu] = useState(false);
+  const navigate = useNavigate();
+
+  /* ===================== */
+  /* ROLE GUARD */
+  /* ===================== */
+  useEffect(() => {
+    if (!isLoggedIn()) {
+      logout();
+      return;
+    }
+
+    const currentRole = getRole();
+    if (role && currentRole !== role) {
+      navigate("/login", { replace: true });
+    }
+  }, [navigate, role]);
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
       {/* ===================== */}
       {/* NAVBAR */}
       {/* ===================== */}
-      <Navbar
-        title={title}
-        onMenuClick={
-          sidebarItems.length > 0 ? () => setMobileMenu(true) : undefined
-        }
-      />
+      <Navbar onMenuClick={() => setMobileMenu(true)} />
 
       {/* ===================== */}
       {/* BODY */}
       {/* ===================== */}
       <div className="flex flex-1 overflow-hidden">
         {/* DESKTOP SIDEBAR */}
-        {sidebarItems.length > 0 && (
-          <aside className="hidden lg:block w-64 bg-white border-r">
-            <Sidebar items={sidebarItems} />
-          </aside>
-        )}
+        <aside className="hidden lg:block w-64 bg-white border-r">
+          <Sidebar role={role} />
+        </aside>
 
         {/* MAIN CONTENT */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+          <Outlet />
+        </main>
       </div>
 
       {/* ===================== */}
       {/* MOBILE SIDEBAR */}
       {/* ===================== */}
-      {mobileMenu && sidebarItems.length > 0 && (
+      {mobileMenu && (
         <div className="fixed inset-0 z-50 lg:hidden">
           {/* OVERLAY */}
           <div
@@ -68,26 +81,13 @@ export default function DashboardLayout({
               </button>
             </div>
 
-            {/* ITEMS */}
-            <div className="flex-1 overflow-y-auto p-2 space-y-1">
-              {sidebarItems.map((item) => (
-                <button
-                  key={item.label}
-                  onClick={() => {
-                    setMobileMenu(false);
-                    item.onClick();
-                  }}
-                  className="
-                    w-full flex items-center gap-3
-                    px-4 py-3 rounded-xl
-                    text-left text-gray-700
-                    hover:bg-slate-100 transition
-                  "
-                >
-                  <span className="text-lg">{item.icon}</span>
-                  <span className="text-sm font-medium">{item.label}</span>
-                </button>
-              ))}
+            {/* MENU ITEMS */}
+            <div className="flex-1 overflow-y-auto">
+              <Sidebar
+                role={role}
+                mobile
+                onItemClick={() => setMobileMenu(false)}
+              />
             </div>
           </div>
         </div>

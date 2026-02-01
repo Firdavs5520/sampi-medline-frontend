@@ -1,7 +1,27 @@
+import { useEffect } from "react";
+import { Outlet, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { FiBarChart2 } from "react-icons/fi";
+import { getRole, isLoggedIn, logout } from "../utils/auth";
 
-export default function ManagerLayout({ children }) {
+export default function ManagerLayout() {
+  const navigate = useNavigate();
+
+  /* ===================== */
+  /* ROLE GUARD */
+  /* ===================== */
+  useEffect(() => {
+    if (!isLoggedIn()) {
+      logout();
+      return;
+    }
+
+    const role = getRole();
+    if (role !== "manager") {
+      navigate("/login", { replace: true });
+    }
+  }, [navigate]);
+
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
       {/* ===================== */}
@@ -25,7 +45,7 @@ export default function ManagerLayout({ children }) {
       {/* CONTENT */}
       {/* ===================== */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-6">
-        {children}
+        <Outlet />
       </main>
     </div>
   );

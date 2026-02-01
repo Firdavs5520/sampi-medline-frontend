@@ -1,21 +1,23 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
+
+import DashboardLayout from "./layouts/DashboardLayout";
+import ProtectedRoute from "./components/ProtectedRoute";
+
 import Nurse from "./pages/Nurse";
 import Medicines from "./pages/Medicines";
-import Manager from "./pages/Manager";
-import ProtectedRoute from "./components/ProtectedRoute";
-import NurseLayout from "./layouts/NurseLayout";
 import NurseServices from "./pages/NurseServices";
+import Manager from "./pages/Manager";
+import Delivery from "./pages/Delivery";
 
 export default function App() {
   return (
-    <Routes className="font-golos">
-      {/* Login */}
+    <Routes>
       <Route path="/login" element={<Login />} />
 
       {/* NURSE */}
-      <Route element={<ProtectedRoute role="nurse" />}>
-        <Route element={<NurseLayout />}>
+      <Route element={<ProtectedRoute roles={["nurse"]} />}>
+        <Route element={<DashboardLayout role="nurse" />}>
           <Route path="/nurse" element={<Nurse />} />
           <Route path="/nurse/medicines" element={<Medicines />} />
           <Route path="/nurse/services" element={<NurseServices />} />
@@ -23,12 +25,18 @@ export default function App() {
       </Route>
 
       {/* MANAGER */}
-      <Route element={<ProtectedRoute role="manager" />}>
-        <Route path="/manager" element={<Manager />} />
+      <Route element={<ProtectedRoute roles={["manager"]} />}>
+        <Route element={<DashboardLayout role="manager" />}>
+          <Route path="/manager" element={<Manager />} />
+        </Route>
+      </Route>
+      {/* DELIVERY */}
+      <Route element={<ProtectedRoute role="delivery" />}>
+        <Route path="/delivery" element={<Delivery />} />
       </Route>
 
-      {/* fallback */}
-      <Route path="*" element={<Navigate to="/login" />} />
+      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }

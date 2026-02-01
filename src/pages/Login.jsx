@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "react-hot-toast";
@@ -9,10 +9,14 @@ import {
   HiOutlineEyeOff,
 } from "react-icons/hi";
 import { FaClinicMedical } from "react-icons/fa";
+
 import api from "../api/axios";
 import AppToast from "../components/Toast";
+import { isLoggedIn, getRole, setAuthData } from "../utils/auth";
 
 export default function Login() {
+  const navigate = useNavigate();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -21,48 +25,65 @@ export default function Login() {
   const emailRef = useRef(null);
   const passwordRef = useRef(null);
 
-  const navigate = useNavigate();
-
   /* ===================== */
-  /* AUTO LOGIN */
+  /* AUTO REDIRECT (AGAR OLDIN LOGIN BO‘LGAN BO‘LSA) */
   /* ===================== */
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
-
-    if (token && role) {
-      navigate(role === "manager" ? "/manager" : "/nurse", {
-        replace: true,
-      });
+    if (isLoggedIn()) {
+      const role = getRole();
+      redirectByRole(role);
     }
-  }, [navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const redirectByRole = (role) => {
+    if (role === "manager") {
+      navigate("/manager", { replace: true });
+    } else if (role === "nurse") {
+      navigate("/nurse", { replace: true });
+    } else if (role === "delivery") {
+      navigate("/delivery", { replace: true });
+    } else {
+      navigate("/login", { replace: true });
+    }
+  };
 
   /* ===================== */
-  /* LOGIN */
+  /* LOGIN HANDLER */
   /* ===================== */
   const handleLogin = async (e) => {
     e.preventDefault();
-    if (!email || !password) return;
+
+    if (!email || !password) {
+      toast.error("Email va parolni kiriting");
+      return;
+    }
 
     setLoading(true);
-    const toastId = toast.loading("");
+    const toastId = toast.loading("Kirish tekshirilmoqda...");
 
     try {
-      const res = await api.post("/auth/login", { email, password });
-      const { token, role } = res.data;
+      const res = await api.post(
+        "/auth/login",
+        { email, password },
+        {
+          timeout: 20000, // 🔥 Render cold start uchun
+        },
+      );
 
-      localStorage.setItem("token", token);
-      localStorage.setItem("role", role);
+      const { token, role, user } = res.data;
 
-      toast.success("", { id: toastId });
+      // 🔐 AUTH MA’LUMOTLARINI SAQLAYMIZ
+      setAuthData({ token, role, user });
 
-      setTimeout(() => {
-        navigate(role === "manager" ? "/manager" : "/nurse", {
-          replace: true,
-        });
-      }, 600);
-    } catch {
-      toast.error("", { id: toastId });
+      toast.success("Muvaffaqiyatli kirdingiz", { id: toastId });
+
+      // 🔥 KECHIKTIRMASDAN REDIRECT
+      redirectByRole(role);
+    } catch (err) {
+      const message =
+        err?.response?.data?.message || "Email yoki parol noto‘g‘ri";
+      toast.error(message, { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -72,7 +93,6 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-brand-gradient px-4">
       <AppToast />
 
-      {/* CARD ANIMATION OK — INPUTLAR ICHIDA EMAS */}
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
@@ -98,8 +118,6 @@ export default function Login() {
             <input
               ref={emailRef}
               type="email"
-              inputMode="email"
-              enterKeyHint="next"
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -121,8 +139,6 @@ export default function Login() {
             <input
               ref={passwordRef}
               type={showPassword ? "text" : "password"}
-              inputMode="text"
-              enterKeyHint="done"
               placeholder="Parol"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -138,7 +154,7 @@ export default function Login() {
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                setShowPassword(!showPassword);
+                setShowPassword((p) => !p);
               }}
               className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"
             >
@@ -150,8 +166,9 @@ export default function Login() {
             </button>
           </div>
 
-          {/* BUTTON */}
+          {/* SUBMIT */}
           <motion.button
+            type="submit" // 🔥 MUHIM
             whileTap={{ scale: 0.97 }}
             disabled={loading}
             className="
@@ -160,7 +177,7 @@ export default function Login() {
               disabled:opacity-60
             "
           >
-            Kirish
+            {loading ? "Kutilmoqda..." : "Kirish"}
           </motion.button>
         </form>
       </motion.div>
