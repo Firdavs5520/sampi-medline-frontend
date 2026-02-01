@@ -1,6 +1,12 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { FiUser, FiPackage, FiRefreshCw, FiLogOut } from "react-icons/fi";
+import {
+  FiUser,
+  FiPackage,
+  FiRefreshCw,
+  FiLogOut,
+  FiTruck,
+} from "react-icons/fi";
 import { FiActivity } from "react-icons/fi";
 
 export default function Navbar() {
@@ -15,31 +21,21 @@ export default function Navbar() {
 
   const refresh = () => window.location.reload();
 
-  const isActive = (path) => location.pathname === path;
-
   /* ================================================= */
-  /* 🖥 MANAGER — DESKTOP TOP NAVBAR */
+  /* 🖥 MANAGER — DESKTOP */
   /* ================================================= */
   if (role === "manager") {
     return (
       <>
-        {/* DESKTOP */}
-        <header
-          className=" hidden lg:flex  top-0 left-0 right-0 z-50
-          bg-white/70 backdrop-blur-xl
-          border-b border-white/40
-          px-6 py-3 
-          items-center justify-between
-        "
-        >
+        <header className="hidden lg:flex bg-white/70 backdrop-blur-xl border-b px-6 py-3 items-center justify-between">
           <span className="font-semibold text-brand-violet text-lg">
             Sampi Medline
           </span>
 
-          <div className="flex gap-3 ">
+          <div className="flex gap-3">
             <button
               onClick={refresh}
-              className="p-2 rounded-xl hover:bg-black/5 transition"
+              className="p-2 rounded-xl hover:bg-black/5"
             >
               <FiRefreshCw size={20} />
             </button>
@@ -53,148 +49,160 @@ export default function Navbar() {
           </div>
         </header>
 
-        {/* MOBILE → bottom */}
         <MobileManagerNav refresh={refresh} logout={logout} />
       </>
     );
   }
 
   /* ================================================= */
-  /* 🧑‍⚕️ NURSE — MOBILE ONLY */
+  /* 🚚 DELIVERY */
+  /* ================================================= */
+  if (role === "delivery") {
+    return <MobileDeliveryNav />;
+  }
+
+  /* ================================================= */
+  /* 🧑‍⚕️ NURSE */
   /* ================================================= */
   return <MobileNurseNav />;
 }
 
 /* ================================================= */
-/* 📱 MOBILE NURSE NAVBAR */
+/* 📱 MOBILE BUTTON STYLE */
+/* ================================================= */
+const item = (active) =>
+  `w-12 h-12 flex items-center justify-center rounded-xl transition
+   ${
+     active
+       ? "bg-white/80 text-brand-violet"
+       : "text-gray-600 hover:bg-white/40"
+   }`;
+
+/* ================================================= */
+/* 📱 NURSE NAV */
 /* ================================================= */
 function MobileNurseNav() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const item = (active) =>
-    `w-12 h-12 flex items-center justify-center rounded-xl
-     transition
-     ${active ? "bg-white/80 text-brand-violet" : "text-gray-600 hover:bg-white/40"}
-    `;
+  return (
+    <BottomNav>
+      <NavBtn
+        active={location.pathname === "/nurse"}
+        onClick={() => navigate("/nurse")}
+      >
+        <FiUser size={28} />
+      </NavBtn>
+
+      <NavBtn
+        active={location.pathname === "/nurse/services"}
+        onClick={() => navigate("/nurse/services")}
+      >
+        <FiActivity size={28} />
+      </NavBtn>
+
+      <NavBtn
+        active={location.pathname === "/nurse/medicines"}
+        onClick={() => navigate("/nurse/medicines")}
+      >
+        <FiPackage size={28} />
+      </NavBtn>
+
+      <NavBtn onClick={() => window.location.reload()}>
+        <FiRefreshCw size={28} />
+      </NavBtn>
+
+      <NavBtn
+        danger
+        onClick={() => {
+          localStorage.clear();
+          navigate("/login", { replace: true });
+        }}
+      >
+        <FiLogOut size={28} />
+      </NavBtn>
+    </BottomNav>
+  );
+}
+
+/* ================================================= */
+/* 📱 DELIVERY NAV (YANGI 🔥) */
+/* ================================================= */
+function MobileDeliveryNav() {
+  const navigate = useNavigate();
+  const location = useLocation();
 
   return (
+    <BottomNav width="w-[70%]">
+      <NavBtn onClick={() => window.location.reload()}>
+        <FiRefreshCw size={30} />
+      </NavBtn>
+
+      <NavBtn
+        danger
+        onClick={() => {
+          localStorage.clear();
+          navigate("/login", { replace: true });
+        }}
+      >
+        <FiLogOut size={30} />
+      </NavBtn>
+    </BottomNav>
+  );
+}
+
+/* ================================================= */
+/* 📱 MANAGER NAV */
+/* ================================================= */
+function MobileManagerNav({ refresh, logout }) {
+  return (
+    <BottomNav width="w-[50%]">
+      <NavBtn onClick={refresh}>
+        <FiRefreshCw size={32} />
+      </NavBtn>
+
+      <NavBtn danger onClick={logout}>
+        <FiLogOut size={32} />
+      </NavBtn>
+    </BottomNav>
+  );
+}
+
+/* ================================================= */
+/* 🧩 SHARED COMPONENTS */
+/* ================================================= */
+function BottomNav({ children, width = "w-[92%]" }) {
+  return (
     <nav
-      className="
-        fixed
-        bottom-[calc(env(safe-area-inset-bottom)+16px)]
+      className={`
+        fixed bottom-[calc(env(safe-area-inset-bottom)+16px)]
         left-1/2 -translate-x-1/2
-        w-[92%] max-w-md
-        z-[999]
-        lg:hidden
-      "
+        ${width} max-w-md z-[999] lg:hidden
+      `}
     >
       <div
-        className="
-          flex justify-around items-center
-          px-4 py-3
-          rounded-3xl
-          bg-white/55 backdrop-blur-2xl
-          border border-white/40
-          shadow-[0_20px_50px_rgba(0,0,0,0.18)]
-        "
+        className="flex justify-around items-center px-4 py-3 rounded-3xl
+        bg-white/55 backdrop-blur-2xl border border-white/40
+        shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
       >
-        {/* 👤 Nurse main */}
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={() => navigate("/nurse")}
-          className={item(location.pathname === "/nurse")}
-        >
-          <FiUser size={30} />
-        </motion.button>
-
-        {/* 🩺 Services */}
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={() => navigate("/nurse/services")}
-          className={item(location.pathname === "/nurse/services")}
-        >
-          <FiActivity size={30} />
-        </motion.button>
-
-        {/* 📦 Medicines */}
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={() => navigate("/nurse/medicines")}
-          className={item(location.pathname === "/nurse/medicines")}
-        >
-          <FiPackage size={30} />
-        </motion.button>
-
-        {/* 🔄 Refresh */}
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={() => window.location.reload()}
-          className={item(false)}
-        >
-          <FiRefreshCw size={30} />
-        </motion.button>
-
-        {/* 🚪 Logout */}
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={() => {
-            localStorage.clear();
-            navigate("/login", { replace: true });
-          }}
-          className="w-12 h-12 flex items-center justify-center
-            rounded-xl text-brand-red hover:bg-red-50 transition"
-        >
-          <FiLogOut size={30} />
-        </motion.button>
+        {children}
       </div>
     </nav>
   );
 }
 
-/* ================================================= */
-/* 📱 MOBILE MANAGER NAVBAR */
-/* ================================================= */
-function MobileManagerNav({ refresh, logout }) {
+function NavBtn({ children, onClick, active, danger }) {
   return (
-    <nav
-      className="
-        fixed
-        bottom-[calc(env(safe-area-inset-bottom)+16px)]
-        left-1/2 -translate-x-1/2
-        w-[50%] max-w-sm
-        z-[999]
-        lg:hidden
-      "
+    <motion.button
+      whileTap={{ scale: 0.9 }}
+      onClick={onClick}
+      className={
+        danger
+          ? "w-12 h-12 flex items-center justify-center rounded-xl text-brand-red hover:bg-red-50"
+          : item(active)
+      }
     >
-      <div
-        className="
-          flex justify-around items-center
-          px-4 py-3
-          rounded-3xl
-          bg-white/55 backdrop-blur-2xl
-          border border-white/40
-          shadow-[0_20px_50px_rgba(0,0,0,0.18)]
-        "
-      >
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={refresh}
-          className="w-12 h-12 flex items-center justify-center rounded-full
-            text-gray-700 hover:bg-black/5 transition"
-        >
-          <FiRefreshCw size={34} />
-        </motion.button>
-
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={logout}
-          className="w-12 h-12 flex items-center justify-center
-            rounded-full text-brand-red "
-        >
-          <FiLogOut size={34} />
-        </motion.button>
-      </div>
-    </nav>
+      {children}
+    </motion.button>
   );
 }

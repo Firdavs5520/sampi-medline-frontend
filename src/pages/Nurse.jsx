@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
 import api from "../api/axios";
 import {
   FiPlus,
@@ -8,92 +7,57 @@ import {
   FiPackage,
   FiSave,
   FiTrash2,
+  FiSearch,
+  FiCheck,
+  FiBriefcase,
 } from "react-icons/fi";
-
-/* ===================== */
-/* STATUS ICON */
-/* ===================== */
-function InlineStatus({ status }) {
-  if (!status) return null;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.6 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.6 }}
-      className="flex justify-center mt-5"
-    >
-      <div
-        className={`w-14 h-14 rounded-full flex items-center justify-center
-          ${
-            status === "loading"
-              ? "bg-brand-violet"
-              : status === "success"
-                ? "bg-green-500"
-                : "bg-red-500"
-          }`}
-      >
-        {status === "loading" && (
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ repeat: Infinity, duration: 1 }}
-            className="w-6 h-6 border-2 border-white border-t-transparent rounded-full"
-          />
-        )}
-
-        {status === "success" && (
-          <svg
-            className="w-7 h-7 text-white"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="3"
-            viewBox="0 0 24 24"
-          >
-            <path d="M5 13l4 4L19 7" />
-          </svg>
-        )}
-
-        {status === "error" && (
-          <svg
-            className="w-7 h-7 text-white"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="3"
-            viewBox="0 0 24 24"
-          >
-            <path d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        )}
-      </div>
-    </motion.div>
-  );
-}
 
 /* ===================== */
 /* MAIN */
 /* ===================== */
 export default function Nurse() {
   const [patientName, setPatientName] = useState("");
-
   const [medicines, setMedicines] = useState([]);
   const [services, setServices] = useState([]);
-
   const [cart, setCart] = useState([]);
-  const [status, setStatus] = useState(null);
+  const [search, setSearch] = useState("");
 
   /* ===================== */
   /* FETCH */
   /* ===================== */
   const loadData = async () => {
-    const meds = await api.get("/medicines");
-    const servs = await api.get("/services");
-    setMedicines(meds.data);
-    setServices(servs.data);
+    const [m, s] = await Promise.all([
+      api.get("/medicines"),
+      api.get("/services"),
+    ]);
+    setMedicines(m.data);
+    setServices(s.data);
   };
 
   useEffect(() => {
     loadData();
   }, []);
+
+  /* ===================== */
+  /* HELPERS */
+  /* ===================== */
+  const inCartQty = (id) =>
+    cart.find((i) => i.type === "medicine" && i._id === id)?.quantity || 0;
+
+  /* ===================== */
+  /* SEARCH */
+  /* ===================== */
+  const filteredMedicines = useMemo(() => {
+    return medicines.filter((m) =>
+      m.name.toLowerCase().includes(search.toLowerCase()),
+    );
+  }, [medicines, search]);
+
+  const filteredServices = useMemo(() => {
+    return services.filter((s) =>
+      s.name.toLowerCase().includes(search.toLowerCase()),
+    );
+  }, [services, search]);
 
   /* ===================== */
   /* ADD MEDICINE */
@@ -104,6 +68,7 @@ export default function Nurse() {
     const exist = cart.find((i) => i.type === "medicine" && i._id === m._id);
 
     if (exist) {
+      if (exist.quantity >= m.quantity) return;
       setCart(
         cart.map((i) =>
           i._id === m._id ? { ...i, quantity: i.quantity + 1 } : i,
@@ -118,6 +83,7 @@ export default function Nurse() {
           name: m.name,
           price: m.price,
           quantity: 1,
+          max: m.quantity,
         },
       ]);
     }
@@ -131,8 +97,10 @@ export default function Nurse() {
       ...cart,
       {
         type: "service",
+        _id: `${service._id}-${variant.label}`,
         name: `${service.name} (${variant.label})`,
         price: variant.price,
+        quantity: 1,
       },
     ]);
   };
@@ -142,7 +110,11 @@ export default function Nurse() {
   /* ===================== */
   const inc = (id) =>
     setCart(
-      cart.map((i) => (i._id === id ? { ...i, quantity: i.quantity + 1 } : i)),
+      cart.map((i) =>
+        i._id === id && (!i.max || i.quantity < i.max)
+          ? { ...i, quantity: i.quantity + 1 }
+          : i,
+      ),
     );
 
   const dec = (id) =>
@@ -154,125 +126,128 @@ export default function Nurse() {
 
   const removeItem = (idx) => setCart(cart.filter((_, i) => i !== idx));
 
-  const total = cart.reduce((s, i) => s + i.price * (i.quantity || 1), 0);
+  const total = cart.reduce((s, i) => s + i.price * i.quantity, 0);
 
   /* ===================== */
   /* SAVE */
   /* ===================== */
   const save = async () => {
-    if (!patientName || cart.length === 0) {
-      setStatus("error");
-      setTimeout(() => setStatus(null), 1200);
-      return;
-    }
+    if (!patientName || cart.length === 0) return;
 
-    try {
-      setStatus("loading");
-
-      for (const i of cart) {
-        await api.post("/administrations", {
-          patientName,
-          type: i.type,
-          name: i.name,
-          quantity: i.type === "medicine" ? i.quantity : 1,
-          price: i.price,
+    for (const i of cart) {
+      if (i.type === "medicine") {
+        await api.post(`/medicines/use/${i._id}`, {
+          quantity: Number(i.quantity),
         });
       }
 
-      setPatientName("");
-      setCart([]);
-      await loadData();
-
-      setStatus("success");
-      setTimeout(() => setStatus(null), 1500);
-    } catch (e) {
-      console.error(e);
-      setStatus("error");
-      setTimeout(() => setStatus(null), 1500);
+      await api.post("/administrations", {
+        patientName,
+        type: i.type,
+        name: i.name,
+        quantity: i.quantity,
+        price: i.price,
+      });
     }
+
+    await loadData();
+    setPatientName("");
+    setCart([]);
   };
 
   return (
-    <div className="pb-[88px] max-w-7xl mx-auto px-4">
-      <div className="flex flex-col lg:flex-row gap-6 items-start">
-        {/* ===================== */}
+    <div className="max-w-7xl mx-auto px-4 pb-24">
+      {/* SEARCH */}
+      <div className="sticky top-0 bg-slate-100 pt-4 pb-3 z-10">
+        <div className="relative">
+          <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            className="w-full pl-12 pr-4 py-3 rounded-xl border bg-white"
+            placeholder="Dori yoki xizmat qidirish..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-col lg:flex-row gap-5 mt-4">
         {/* LEFT */}
-        {/* ===================== */}
-        <div className="flex-1 space-y-6">
+        <div className="flex-1 space-y-5">
           {/* MEDICINES */}
-          <div className="bg-white rounded-3xl shadow p-6">
-            <h2 className="flex items-center gap-2 font-semibold mb-4">
+          <div className="bg-white rounded-2xl shadow p-4">
+            <h2 className="flex items-center gap-2 font-semibold mb-3">
               <FiPackage /> Dorilar
             </h2>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {medicines.map((m) => {
-                const isOut = m.quantity <= 0;
-                const isLow = m.quantity > 0 && m.quantity <= m.minLevel;
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {filteredMedicines.map((m) => {
+                const isOut = m.quantity === 0;
+                const addedQty = inCartQty(m._id);
 
                 return (
-                  <div
+                  <button
                     key={m._id}
-                    className={`relative border rounded-2xl p-4 transition
+                    disabled={isOut}
+                    onClick={() => addMedicine(m)}
+                    className={`relative text-left rounded-xl p-3 border transition
                       ${
-                        isOut ? "opacity-50 bg-gray-100" : "hover:bg-slate-50"
+                        isOut
+                          ? "bg-gray-100 opacity-60 cursor-not-allowed"
+                          : addedQty
+                            ? "border-green-500 bg-green-50"
+                            : "bg-white hover:bg-slate-50"
                       }`}
                   >
-                    {/* QOLMADI PECHAT */}
+                    {/* QOLMADI */}
                     {isOut && (
-                      <div className="absolute inset-0 flex items-center justify-center z-10">
-                        <div className="rotate-[-20deg] border-2 border-red-600 text-red-600 px-4 py-1 rounded-lg font-bold text-sm">
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="rotate-[-15deg] border-2 border-red-600 text-red-600 px-3 py-1 rounded-lg font-bold bg-white">
                           QOLMADI
                         </div>
                       </div>
                     )}
 
-                    <button
-                      disabled={isOut}
-                      onClick={() => addMedicine(m)}
-                      className="w-full text-left disabled:cursor-not-allowed"
-                    >
-                      <div className="font-medium">{m.name}</div>
+                    <div className="font-medium text-sm">{m.name}</div>
+                    <div className="text-xs text-gray-500">
+                      {m.price.toLocaleString()} so‘m
+                    </div>
 
-                      <div className="text-sm text-gray-500">
-                        {m.price.toLocaleString()} so‘m
+                    {!isOut && (
+                      <div className="text-xs text-gray-400 mt-1">
+                        Qoldiq: {m.quantity}
                       </div>
+                    )}
 
-                      {isLow && (
-                        <div className="mt-1 text-xs text-red-500 font-medium">
-                          ⚠️ Kam qoldi ({m.quantity} dona)
-                        </div>
-                      )}
-
-                      {!isLow && !isOut && (
-                        <div className="mt-1 text-xs text-gray-400">
-                          Qoldiq: {m.quantity} dona
-                        </div>
-                      )}
-                    </button>
-                  </div>
+                    {addedQty > 0 && (
+                      <div className="mt-1 flex items-center gap-1 text-xs font-semibold text-green-700">
+                        <FiCheck /> Qo‘shildi ({addedQty})
+                      </div>
+                    )}
+                  </button>
                 );
               })}
             </div>
           </div>
 
           {/* SERVICES */}
-          <div className="bg-white rounded-3xl shadow p-6">
-            <h2 className="font-semibold mb-4">Xizmatlar</h2>
+          <div className="bg-white rounded-2xl shadow p-4">
+            <h2 className="flex items-center gap-2 font-semibold mb-3">
+              <FiBriefcase /> Xizmatlar
+            </h2>
 
-            {services.map((s) => (
-              <div key={s._id} className="border rounded-2xl p-4 mb-3">
+            {filteredServices.map((s) => (
+              <div key={s._id} className="border rounded-xl p-3 mb-3">
                 <div className="font-medium mb-2">{s.name}</div>
 
-                <div className="space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {s.variants?.map((v, i) => (
                     <button
                       key={i}
                       onClick={() => addService(s, v)}
-                      className="w-full flex justify-between border rounded-xl px-3 py-2 hover:bg-slate-50"
+                      className="flex justify-between items-center border rounded-lg px-3 py-2 hover:bg-slate-50"
                     >
-                      <span>{v.label}</span>
-                      <span className="font-semibold">
+                      <span className="text-sm">{v.label}</span>
+                      <span className="font-semibold text-sm">
                         {v.price.toLocaleString()} so‘m
                       </span>
                     </button>
@@ -283,70 +258,58 @@ export default function Nurse() {
           </div>
         </div>
 
-        {/* ===================== */}
-        {/* RIGHT — CART */}
-        {/* ===================== */}
-        <div className="w-full lg:w-[360px] sticky top-0">
-          <div className="bg-white rounded-3xl shadow p-6">
-            <h3 className="flex items-center gap-2 font-semibold mb-4">
+        {/* RIGHT CART */}
+        <div className="w-full lg:w-[340px]">
+          <div className="bg-white rounded-2xl shadow p-4 sticky top-[96px]">
+            <h3 className="flex items-center gap-2 font-semibold mb-3">
               <FiUser /> Bemor
             </h3>
 
             <input
-              className="border rounded-xl px-4 py-3 mb-4 w-full"
+              className="border rounded-lg px-3 py-2 mb-3 w-full"
               placeholder="Bemor ismi"
               value={patientName}
               onChange={(e) => setPatientName(e.target.value)}
             />
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               {cart.map((i, idx) => (
                 <div
                   key={idx}
-                  className="flex justify-between items-center border rounded-xl px-3 py-2"
+                  className="flex justify-between items-center border rounded-lg px-2 py-2"
                 >
                   <div>
-                    <div className="font-medium">{i.name}</div>
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm font-medium">{i.name}</div>
+                    <div className="text-xs text-gray-500">
                       {i.price.toLocaleString()} so‘m
                     </div>
                   </div>
 
-                  {i.type === "medicine" ? (
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => dec(i._id)}>
-                        <FiMinus />
-                      </button>
-                      <span>{i.quantity}</span>
-                      <button onClick={() => inc(i._id)}>
-                        <FiPlus />
-                      </button>
-                    </div>
-                  ) : (
-                    <button onClick={() => removeItem(idx)}>
-                      <FiTrash2 className="text-red-500" />
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => dec(i._id)}>
+                      <FiMinus />
                     </button>
-                  )}
+                    <span className="text-sm font-semibold">{i.quantity}</span>
+                    <button onClick={() => inc(i._id)}>
+                      <FiPlus />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
 
-            <div className="mt-4 flex justify-between font-semibold">
+            <div className="mt-3 flex justify-between font-semibold text-sm">
               <span>Jami</span>
               <span>{total.toLocaleString()} so‘m</span>
             </div>
 
             <button
               onClick={save}
-              className="mt-4 w-full bg-brand-red text-white py-3 rounded-xl font-semibold"
+              className="mt-3 w-full bg-brand-red text-white py-2 rounded-lg font-semibold"
             >
-              <FiSave className="inline mr-2" />
+              <FiSave className="inline mr-1" />
               Saqlash
             </button>
-
-            <AnimatePresence>
-              <InlineStatus status={status} />
-            </AnimatePresence>
           </div>
         </div>
       </div>
