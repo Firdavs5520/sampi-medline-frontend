@@ -1,82 +1,76 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "../api/axios";
 import {
+  FiPackage,
+  FiBriefcase,
+  FiSave,
+  FiCheck,
+  FiUser,
   FiPlus,
   FiMinus,
-  FiUser,
-  FiPackage,
-  FiSave,
   FiTrash2,
-  FiSearch,
-  FiCheck,
-  FiBriefcase,
 } from "react-icons/fi";
+import { motion, AnimatePresence } from "framer-motion";
 
-/* ===================== */
-/* MAIN */
-/* ===================== */
 export default function Nurse() {
   const [patientName, setPatientName] = useState("");
   const [medicines, setMedicines] = useState([]);
   const [services, setServices] = useState([]);
   const [cart, setCart] = useState([]);
+  const [blocking, setBlocking] = useState(false);
   const [search, setSearch] = useState("");
-
-  /* ===================== */
-  /* FETCH */
-  /* ===================== */
-  const loadData = async () => {
-    const [m, s] = await Promise.all([
-      api.get("/medicines"),
-      api.get("/services"),
-    ]);
-    setMedicines(m.data);
-    setServices(s.data);
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
 
   /* ===================== */
   /* HELPERS */
   /* ===================== */
-  const inCartQty = (id) =>
-    cart.find((i) => i.type === "medicine" && i._id === id)?.quantity || 0;
+
+  const formatName = (v) =>
+    v.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+
+  const medicineInCart = (id) =>
+    cart.find((i) => i.type === "medicine" && i._id === id);
+
+  const serviceInCart = (id) =>
+    cart.find((i) => i.type === "service" && i.serviceId === id);
+
+  const total = useMemo(
+    () => cart.reduce((s, i) => s + i.price * i.quantity, 0),
+    [cart],
+  );
 
   /* ===================== */
-  /* SEARCH */
+  /* FETCH */
   /* ===================== */
-  const filteredMedicines = useMemo(() => {
-    return medicines.filter((m) =>
-      m.name.toLowerCase().includes(search.toLowerCase()),
-    );
-  }, [medicines, search]);
+  useEffect(() => {
+    const load = async () => {
+      const [m, s] = await Promise.all([
+        api.get("/medicines"),
+        api.get("/services"),
+      ]);
 
-  const filteredServices = useMemo(() => {
-    return services.filter((s) =>
-      s.name.toLowerCase().includes(search.toLowerCase()),
-    );
-  }, [services, search]);
-
-  /* ===================== */
-  /* ADD MEDICINE */
-  /* ===================== */
-  const addMedicine = (m) => {
-    if (m.quantity <= 0) return;
-
-    const exist = cart.find((i) => i.type === "medicine" && i._id === m._id);
-
-    if (exist) {
-      if (exist.quantity >= m.quantity) return;
-      setCart(
-        cart.map((i) =>
-          i._id === m._id ? { ...i, quantity: i.quantity + 1 } : i,
+      setMedicines(
+        [...m.data].sort((a, b) =>
+          a.name.localeCompare(b.name, "uz", { sensitivity: "base" }),
         ),
       );
+      setServices(s.data);
+    };
+    load();
+  }, []);
+
+  /* ===================== */
+  /* MEDICINES */
+  /* ===================== */
+  const toggleMedicine = (m) => {
+    if (blocking || m.quantity <= 0) return;
+
+    const exist = medicineInCart(m._id);
+
+    if (exist) {
+      setCart((c) => c.filter((i) => i._id !== m._id));
     } else {
-      setCart([
-        ...cart,
+      setCart((c) => [
+        ...c,
         {
           type: "medicine",
           _id: m._id,
@@ -89,193 +83,237 @@ export default function Nurse() {
     }
   };
 
+  const incMedicine = (id) => {
+    setCart((c) =>
+      c.map((i) =>
+        i._id === id && i.quantity < i.max
+          ? { ...i, quantity: i.quantity + 1 }
+          : i,
+      ),
+    );
+  };
+
+  const decMedicine = (id) => {
+    setCart((c) =>
+      c
+        .map((i) => (i._id === id ? { ...i, quantity: i.quantity - 1 } : i))
+        .filter((i) => i.quantity > 0),
+    );
+  };
+
   /* ===================== */
-  /* ADD SERVICE */
+  /* SERVICES */
   /* ===================== */
-  const addService = (service, variant) => {
-    setCart([
-      ...cart,
+  const toggleService = (s, v) => {
+    if (blocking) return;
+
+    setCart((c) =>
+      c.filter((i) => !(i.type === "service" && i.serviceId === s._id)),
+    );
+
+    setCart((c) => [
+      ...c,
       {
         type: "service",
-        _id: `${service._id}-${variant.label}`,
-        name: `${service.name} (${variant.label})`,
-        price: variant.price,
+        serviceId: s._id,
+        variant: v.label,
+        name: `${s.name} (${v.label})`,
+        price: v.price,
         quantity: 1,
       },
     ]);
   };
 
   /* ===================== */
-  /* CART CONTROLS */
-  /* ===================== */
-  const inc = (id) =>
-    setCart(
-      cart.map((i) =>
-        i._id === id && (!i.max || i.quantity < i.max)
-          ? { ...i, quantity: i.quantity + 1 }
-          : i,
-      ),
-    );
-
-  const dec = (id) =>
-    setCart(
-      cart
-        .map((i) => (i._id === id ? { ...i, quantity: i.quantity - 1 } : i))
-        .filter((i) => i.quantity > 0),
-    );
-
-  const removeItem = (idx) => setCart(cart.filter((_, i) => i !== idx));
-
-  const total = cart.reduce((s, i) => s + i.price * i.quantity, 0);
-
-  /* ===================== */
   /* SAVE */
   /* ===================== */
   const save = async () => {
-    if (!patientName || cart.length === 0) return;
+    if (!patientName || !cart.length || blocking) return;
 
-    for (const i of cart) {
-      if (i.type === "medicine") {
-        await api.post(`/medicines/use/${i._id}`, {
-          quantity: Number(i.quantity),
-        });
-      }
+    setBlocking(true);
 
-      await api.post("/administrations", {
+    try {
+      const res = await api.post("/administrations/bulk", {
         patientName,
-        type: i.type,
-        name: i.name,
-        quantity: i.quantity,
-        price: i.price,
+        items: cart,
       });
-    }
 
-    await loadData();
-    setPatientName("");
-    setCart([]);
+      const orderId = res.data.orderId;
+      window.open(`/nurse/check/${orderId}`, "_blank");
+
+      // UI’da real-time kamaytirish
+      setMedicines((prev) =>
+        prev.map((m) => {
+          const used = cart.find(
+            (i) => i.type === "medicine" && i._id === m._id,
+          );
+          if (!used) return m;
+          return { ...m, quantity: m.quantity - used.quantity };
+        }),
+      );
+
+      setCart([]);
+      setPatientName("");
+    } catch (err) {
+      alert(err?.response?.data?.message || "Omborda yetarli emas");
+    } finally {
+      setBlocking(false);
+    }
   };
 
-  return (
-    <div className="max-w-7xl mx-auto px-4 pb-24">
-      {/* SEARCH */}
-      <div className="sticky top-0 bg-slate-100 pt-4 pb-3 z-10">
-        <div className="relative">
-          <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            className="w-full pl-12 pr-4 py-3 rounded-xl border bg-white"
-            placeholder="Dori yoki xizmat qidirish..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-      </div>
+  /* ===================== */
+  /* 🔥 ENTER HOTKEY (PC) */
+  /* ===================== */
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key !== "Enter") return;
+      if (blocking) return;
 
-      <div className="flex flex-col lg:flex-row gap-5 mt-4">
+      const tag = document.activeElement?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+
+      if (patientName && cart.length) {
+        save();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [patientName, cart, blocking]);
+
+  /* ===================== */
+  /* UI */
+  /* ===================== */
+  return (
+    <div className="max-w-7xl mx-auto px-3 pb-28">
+      <input
+        className="w-full px-4 py-3 rounded-xl border mb-3"
+        placeholder="Dori yoki xizmat qidirish..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
+
+      <div className="flex flex-col lg:flex-row gap-4">
         {/* LEFT */}
-        <div className="flex-1 space-y-5">
+        <div className="flex-1 space-y-4">
           {/* MEDICINES */}
-          <div className="bg-white rounded-2xl shadow p-4">
+          <div className="bg-white rounded-2xl p-3 shadow">
             <h2 className="flex items-center gap-2 font-semibold mb-3">
               <FiPackage /> Dorilar
             </h2>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {filteredMedicines.map((m) => {
-                const isOut = m.quantity === 0;
-                const addedQty = inCartQty(m._id);
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {medicines
+                .filter((m) =>
+                  m.name.toLowerCase().includes(search.toLowerCase()),
+                )
+                .map((m) => {
+                  const selected = medicineInCart(m._id);
+                  const out = m.quantity <= 0;
 
-                return (
-                  <button
-                    key={m._id}
-                    disabled={isOut}
-                    onClick={() => addMedicine(m)}
-                    className={`relative text-left rounded-xl p-3 border transition
-                      ${
-                        isOut
-                          ? "bg-gray-100 opacity-60 cursor-not-allowed"
-                          : addedQty
-                            ? "border-green-500 bg-green-50"
-                            : "bg-white hover:bg-slate-50"
-                      }`}
-                  >
-                    {/* QOLMADI */}
-                    {isOut && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="rotate-[-15deg] border-2 border-red-600 text-red-600 px-3 py-1 rounded-lg font-bold bg-white">
-                          QOLMADI
+                  return (
+                    <motion.button
+                      key={m._id}
+                      whileTap={!out ? { scale: 0.97 } : {}}
+                      onClick={() => toggleMedicine(m)}
+                      disabled={out || blocking}
+                      className={`relative border rounded-xl p-3 text-left
+                        ${
+                          selected
+                            ? "bg-green-50 border-green-500"
+                            : "hover:bg-slate-50"
+                        }
+                        ${out ? "opacity-60" : ""}`}
+                    >
+                      {out && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="border-2 border-red-600 text-red-600 text-xs font-bold px-2 py-1 rounded bg-white">
+                            QOLMADI
+                          </div>
                         </div>
+                      )}
+
+                      <div className="font-medium text-sm">{m.name}</div>
+                      <div className="text-xs text-gray-500">
+                        {m.price.toLocaleString()} so‘m
                       </div>
-                    )}
-
-                    <div className="font-medium text-sm">{m.name}</div>
-                    <div className="text-xs text-gray-500">
-                      {m.price.toLocaleString()} so‘m
-                    </div>
-
-                    {!isOut && (
-                      <div className="text-xs text-gray-400 mt-1">
+                      <div className="text-[11px] text-gray-400">
                         Qoldiq: {m.quantity}
                       </div>
-                    )}
 
-                    {addedQty > 0 && (
-                      <div className="mt-1 flex items-center gap-1 text-xs font-semibold text-green-700">
-                        <FiCheck /> Qo‘shildi ({addedQty})
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
+                      {selected && (
+                        <FiCheck className="absolute top-2 right-2 text-green-600 text-sm" />
+                      )}
+                    </motion.button>
+                  );
+                })}
             </div>
           </div>
 
           {/* SERVICES */}
-          <div className="bg-white rounded-2xl shadow p-4">
+          <div className="bg-white rounded-2xl p-3 shadow">
             <h2 className="flex items-center gap-2 font-semibold mb-3">
               <FiBriefcase /> Xizmatlar
             </h2>
 
-            {filteredServices.map((s) => (
-              <div key={s._id} className="border rounded-xl p-3 mb-3">
-                <div className="font-medium mb-2">{s.name}</div>
+            {services.map((s) => {
+              const selected = serviceInCart(s._id);
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {s.variants?.map((v, i) => (
-                    <button
-                      key={i}
-                      onClick={() => addService(s, v)}
-                      className="flex justify-between items-center border rounded-lg px-3 py-2 hover:bg-slate-50"
-                    >
-                      <span className="text-sm">{v.label}</span>
-                      <span className="font-semibold text-sm">
-                        {v.price.toLocaleString()} so‘m
-                      </span>
-                    </button>
-                  ))}
+              return (
+                <div key={s._id} className="border rounded-xl p-3 mb-3">
+                  <div className="font-medium mb-2 text-sm">{s.name}</div>
+
+                  {s.variants.map((v, i) => {
+                    const active = selected && selected.variant === v.label;
+
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => toggleService(s, v)}
+                        disabled={selected && !active}
+                        className={`w-full flex justify-between items-center border rounded-lg px-3 py-2 mb-2 text-sm
+                          ${
+                            active
+                              ? "bg-green-50 border-green-500"
+                              : "hover:bg-slate-50"
+                          }
+                          ${
+                            selected && !active
+                              ? "opacity-40 cursor-not-allowed"
+                              : ""
+                          }`}
+                      >
+                        <span>{v.label}</span>
+                        <span>{v.price.toLocaleString()} so‘m</span>
+                        {active && <FiCheck className="text-green-600" />}
+                      </button>
+                    );
+                  })}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
-        {/* RIGHT CART */}
-        <div className="w-full lg:w-[340px]">
-          <div className="bg-white rounded-2xl shadow p-4 sticky top-[96px]">
-            <h3 className="flex items-center gap-2 font-semibold mb-3">
-              <FiUser /> Bemor
-            </h3>
+        {/* RIGHT */}
+        <div className="w-full lg:w-[360px] bg-white rounded-2xl p-4 shadow">
+          <h3 className="flex items-center gap-2 font-semibold mb-3">
+            <FiUser /> Bemor
+          </h3>
 
-            <input
-              className="border rounded-lg px-3 py-2 mb-3 w-full"
-              placeholder="Bemor ismi"
-              value={patientName}
-              onChange={(e) => setPatientName(e.target.value)}
-            />
+          <input
+            className="border rounded-lg px-3 py-2 w-full mb-3"
+            placeholder="Familiya Ism"
+            value={patientName}
+            onChange={(e) => setPatientName(formatName(e.target.value))}
+          />
 
-            <div className="space-y-2">
-              {cart.map((i, idx) => (
-                <div
-                  key={idx}
+          <div className="space-y-2 mb-3">
+            <AnimatePresence>
+              {cart.map((i) => (
+                <motion.div
+                  key={i.type === "medicine" ? i._id : i.serviceId}
+                  layout
                   className="flex justify-between items-center border rounded-lg px-2 py-2"
                 >
                   <div>
@@ -285,32 +323,40 @@ export default function Nurse() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => dec(i._id)}>
-                      <FiMinus />
+                  {i.type === "medicine" ? (
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => decMedicine(i._id)}>
+                        <FiMinus />
+                      </button>
+                      <span className="font-semibold">{i.quantity}</span>
+                      <button onClick={() => incMedicine(i._id)}>
+                        <FiPlus />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setCart((c) => c.filter((x) => x !== i))}
+                    >
+                      <FiTrash2 className="text-red-500" />
                     </button>
-                    <span className="text-sm font-semibold">{i.quantity}</span>
-                    <button onClick={() => inc(i._id)}>
-                      <FiPlus />
-                    </button>
-                  </div>
-                </div>
+                  )}
+                </motion.div>
               ))}
-            </div>
-
-            <div className="mt-3 flex justify-between font-semibold text-sm">
-              <span>Jami</span>
-              <span>{total.toLocaleString()} so‘m</span>
-            </div>
-
-            <button
-              onClick={save}
-              className="mt-3 w-full bg-brand-red text-white py-2 rounded-lg font-semibold"
-            >
-              <FiSave className="inline mr-1" />
-              Saqlash
-            </button>
+            </AnimatePresence>
           </div>
+
+          <div className="font-semibold mb-3">
+            Jami: {total.toLocaleString()} so‘m
+          </div>
+
+          <button
+            onClick={save}
+            disabled={!patientName || !cart.length || blocking}
+            className="w-full py-3 rounded-xl font-semibold text-white bg-brand-red hover:bg-red-700"
+          >
+            <FiSave className="inline mr-1" />
+            Saqlash va chek
+          </button>
         </div>
       </div>
     </div>

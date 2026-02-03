@@ -11,7 +11,6 @@ import {
 import { FaClinicMedical } from "react-icons/fa";
 
 import api from "../api/axios";
-import AppToast from "../components/Toast";
 import { isLoggedIn, getRole, setAuthData } from "../utils/auth";
 
 export default function Login() {
@@ -91,8 +90,6 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-brand-gradient px-4">
-      <AppToast />
-
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}

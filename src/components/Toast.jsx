@@ -6,7 +6,7 @@ export default function AppToast() {
     <Toaster
       position="bottom-center"
       toastOptions={{
-        duration: 1200,
+        duration: 1000,
         style: {
           background: "transparent",
           boxShadow: "none",
@@ -18,7 +18,6 @@ export default function AppToast() {
           className={`
             flex items-center justify-center
             w-14 h-14 rounded-full
-            
             transition-all
             ${t.visible ? "animate-toast-in" : "animate-toast-out"}
             ${
@@ -29,9 +28,7 @@ export default function AppToast() {
                   : ""
             }
           `}
-          style={{
-            marginBottom: "90px", // 👈 bottom-nav ustida
-          }}
+          style={{ marginBottom: "90px" }}
         >
           {t.type === "loading" && (
             <FiLoader className="text-white text-5xl animate-spin" />

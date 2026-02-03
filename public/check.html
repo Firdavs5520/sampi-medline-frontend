@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="uz">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Sampi Medline — Chek</title>
+
+    <style>
+        @media print {
+            @page {
+                size: 58mm auto;
+                margin: 0;
+            }
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            width: 58mm;
+            margin: 0;
+            padding: 6px;
+            font-size: 13px;
+            color: #000;
+        }
+
+        .title {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .divider {
+            border-top: 1px dashed #000;
+            margin: 6px 0;
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            gap: 6px;
+        }
+
+        .section {
+            margin-top: 6px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .total {
+            font-size: 15px;
+            font-weight: bold;
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        .error {
+            color: red;
+            font-weight: bold;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="title">SAMPI MEDLINE</div>
+    <div class="divider"></div>
+
+    <div id="meta"></div>
+
+    <div class="divider"></div>
+
+    <!-- DORILAR -->
+    <div id="medicines"></div>
+
+    <!-- XIZMATLAR -->
+    <div id="services"></div>
+
+    <div class="divider"></div>
+
+    <div class="row total">
+        <span>Jami:</span>
+        <span id="total"></span>
+    </div>
+
+    <div class="divider"></div>
+    <div class="center">Rahmat!</div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const orderId = params.get("orderId");
+
+        if (!orderId) {
+            document.body.innerHTML =
+                "<div class='error'>orderId topilmadi</div>";
+            throw new Error("orderId yo‘q");
+        }
+
+        fetch(`/api/administrations/public/orders/${orderId}`)
+            .then(async (res) => {
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error("HTTP " + res.status + ": " + text);
+                }
+                return res.json();
+            })
+            .then((order) => {
+                /* ===================== */
+                /* META */
+                /* ===================== */
+                const date = new Date(order.date);
+
+                document.getElementById("meta").innerHTML = `
+          <div>Bemor: ${order.patientName}</div>
+          <div>Sana: ${date.toLocaleDateString()} ${date
+                        .toLocaleTimeString()
+                        .slice(0, 5)}</div>
+        `;
+
+                /* ===================== */
+                /* TOTAL */
+                /* ===================== */
+                document.getElementById("total").innerText =
+                    order.total.toLocaleString() + " so‘m";
+
+                const medBox = document.getElementById("medicines");
+                const servBox = document.getElementById("services");
+
+                let hasMedicine = false;
+                let hasService = false;
+
+                /* ===================== */
+                /* ITEMS */
+                /* ===================== */
+                order.items.forEach((i) => {
+                    const row = document.createElement("div");
+                    row.className = "row";
+                    row.innerHTML = `
+            <span>${i.name} x${i.quantity}</span>
+            <span>${(i.price * i.quantity).toLocaleString()}</span>
+          `;
+
+                    if (i.type === "medicine") {
+                        if (!hasMedicine) {
+                            medBox.innerHTML =
+                                "<div class='section'>Dorilar</div>";
+                            hasMedicine = true;
+                        }
+                        medBox.appendChild(row);
+                    }
+
+                    if (i.type === "service") {
+                        if (!hasService) {
+                            servBox.innerHTML =
+                                "<div class='section'>Xizmatlar</div>";
+                            hasService = true;
+                        }
+                        servBox.appendChild(row);
+                    }
+                });
+
+                /* ===================== */
+                /* PRINT */
+                /* ===================== */
+                setTimeout(() => window.print(), 300);
+            })
+            .catch((err) => {
+                console.error("CHECK ERROR:", err);
+                document.body.innerHTML =
+                    "<div class='error'>Chekni olishda xatolik:<br/>" +
+                    err.message +
+                    "</div>";
+            });
+
+        window.onafterprint = () => window.close();
+    </script>
+</body>
+
+</html>

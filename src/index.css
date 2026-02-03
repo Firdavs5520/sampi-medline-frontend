@@ -51,3 +51,19 @@
 .animate-toast-out {
   animation: toast-out 0.2s ease-in;
 }
+@media print {
+  body * {
+    visibility: visible;
+  }
+
+  #receipt,
+  #receipt * {
+    visibility: visible;
+  }
+
+  #receipt {
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
+}

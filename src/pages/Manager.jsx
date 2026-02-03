@@ -120,7 +120,7 @@ export default function Manager() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 p-4 sm:p-6">
+    <div className="min-h-screen bg-slate-100 p-4 sm:p-6 pb-[100px]">
       <div className="max-w-6xl mx-auto space-y-5">
         {/* TABS */}
         <div className="flex gap-2 flex-wrap">
