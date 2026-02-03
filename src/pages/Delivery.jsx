@@ -3,15 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../api/axios";
 import Navbar from "../components/Navbar";
-import {
-  FiPlus,
-  FiMinus,
-  FiCheck,
-  FiX,
-  FiPackage,
-  FiLoader,
-  FiLogOut,
-} from "react-icons/fi";
+import { FiPackage, FiCheck, FiX, FiLoader, FiLogOut } from "react-icons/fi";
 
 /* ===================== */
 /* LOADING */
@@ -57,65 +49,51 @@ export default function Delivery() {
   }, []);
 
   /* ===================== */
-  /* QTY HELPERS */
-  /* ===================== */
-  const normalizeQty = (value, max = Infinity) => {
-    let v = Number(value);
-    if (isNaN(v)) v = 1;
-    if (v < 1) v = 1;
-    if (v > max) v = max;
-    return v;
-  };
-
-  /* ===================== */
   /* CART LOGIC */
   /* ===================== */
   const toggleMedicine = (m) => {
-    if (m.quantity === 0) return;
-
     const exist = cart.find((i) => i._id === m._id);
 
     if (exist) {
       setCart(cart.filter((i) => i._id !== m._id));
     } else {
-      setCart([...cart, { ...m, addQty: 1 }]);
+      setCart([
+        ...cart,
+        {
+          ...m,
+          addQty: "", // 🔥 BOSHLANISHI BO‘SH
+        },
+      ]);
     }
   };
 
   const setQty = (id, value) => {
-    setCart((prev) =>
-      prev.map((i) =>
-        i._id === id ? { ...i, addQty: normalizeQty(value, i.quantity) } : i,
-      ),
-    );
-  };
-
-  const inc = (id, step = 1) => {
+    // bu yerda majburlash YO‘Q
     setCart((prev) =>
       prev.map((i) =>
         i._id === id
-          ? { ...i, addQty: normalizeQty(i.addQty + step, i.quantity) }
-          : i,
-      ),
-    );
-  };
-
-  const dec = (id) => {
-    setCart((prev) =>
-      prev.map((i) =>
-        i._id === id
-          ? { ...i, addQty: normalizeQty(i.addQty - 1, i.quantity) }
+          ? {
+              ...i,
+              addQty: value,
+            }
           : i,
       ),
     );
   };
 
   /* ===================== */
-  /* SAVE */
+  /* SAVE — VALIDATION FAQAT SHU YERDA */
   /* ===================== */
   const save = async () => {
     if (cart.length === 0) {
       setError("Kamida bitta dori tanlang");
+      return;
+    }
+
+    const invalid = cart.find((m) => m.addQty === "" || Number(m.addQty) <= 0);
+
+    if (invalid) {
+      setError(`❗ "${invalid.name}" uchun miqdor 0 dan katta bo‘lishi shart`);
       return;
     }
 
@@ -126,7 +104,7 @@ export default function Delivery() {
       await api.post("/medicines/delivery", {
         items: cart.map((m) => ({
           medicineId: m._id,
-          quantity: m.addQty,
+          quantity: Number(m.addQty),
         })),
       });
 
@@ -157,7 +135,7 @@ export default function Delivery() {
       <main className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
         {/* HEADER */}
         <div className="flex items-center justify-between">
-          <h1 className="text-lg sm:text-xl font-semibold flex items-center gap-2">
+          <h1 className="text-lg font-semibold flex items-center gap-2">
             <FiPackage /> Omborga dori qo‘shish
           </h1>
 
@@ -173,8 +151,8 @@ export default function Delivery() {
           <Loading />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* LEFT */}
-            <div className="bg-white rounded-2xl shadow p-4 sm:p-6">
+            {/* LEFT — MEDICINES */}
+            <div className="bg-white rounded-2xl shadow p-4">
               <h2 className="font-semibold mb-4">Dorilar</h2>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -184,25 +162,20 @@ export default function Delivery() {
                   return (
                     <button
                       key={m._id}
-                      disabled={m.quantity === 0}
                       onClick={() => toggleMedicine(m)}
                       className={`border rounded-xl p-3 text-left transition
                         ${
-                          m.quantity === 0
-                            ? "opacity-40 cursor-not-allowed"
-                            : selected
-                              ? "border-brand-violet bg-violet-50"
-                              : "hover:bg-slate-50"
+                          selected
+                            ? "border-brand-violet bg-violet-50"
+                            : "hover:bg-slate-50"
                         }`}
                     >
                       <div className="font-medium text-sm">{m.name}</div>
                       <div
                         className={`text-xs ${
                           m.quantity === 0
-                            ? "text-gray-400"
-                            : m.quantity <= (m.minLevel ?? 0)
-                              ? "text-red-500"
-                              : "text-gray-500"
+                            ? "text-red-500 font-medium"
+                            : "text-gray-500"
                         }`}
                       >
                         {m.quantity === 0 ? "Qolmadi" : `Qoldiq: ${m.quantity}`}
@@ -213,8 +186,8 @@ export default function Delivery() {
               </div>
             </div>
 
-            {/* RIGHT */}
-            <div className="bg-white rounded-2xl shadow p-4 sm:p-6 space-y-4">
+            {/* RIGHT — CONFIRM */}
+            <div className="bg-white rounded-2xl shadow p-4 space-y-4">
               <h2 className="font-semibold">Tasdiqlash</h2>
 
               {cart.length === 0 ? (
@@ -224,7 +197,7 @@ export default function Delivery() {
                   {cart.map((m) => (
                     <div
                       key={m._id}
-                      className="border rounded-xl p-3 space-y-3"
+                      className="border rounded-xl p-3 space-y-2"
                     >
                       <div className="flex justify-between items-center">
                         <div className="font-medium text-sm">{m.name}</div>
@@ -237,52 +210,21 @@ export default function Delivery() {
                         </button>
                       </div>
 
-                      {/* QTY */}
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => dec(m._id)}
-                          className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center"
-                        >
-                          <FiMinus />
-                        </button>
-
-                        <input
-                          type="number"
-                          inputMode="numeric"
-                          min={1}
-                          max={m.quantity}
-                          value={m.addQty}
-                          onChange={(e) => setQty(m._id, e.target.value)}
-                          onBlur={(e) => setQty(m._id, e.target.value)}
-                          className="w-20 border rounded-lg text-center py-1"
-                        />
-
-                        <button
-                          onClick={() => inc(m._id)}
-                          className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center"
-                        >
-                          <FiPlus />
-                        </button>
-                      </div>
-
-                      {/* QUICK ADD */}
-                      <div className="flex gap-2 text-xs">
-                        {[10, 50, 100].map((n) => (
-                          <button
-                            key={n}
-                            onClick={() => inc(m._id, n)}
-                            className="px-3 py-1 rounded-full bg-slate-100"
-                          >
-                            +{n}
-                          </button>
-                        ))}
-                      </div>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        value={m.addQty}
+                        onChange={(e) => setQty(m._id, e.target.value)}
+                        className="w-full border rounded-lg text-center py-2 text-lg"
+                        placeholder="Kelgan miqdorni kiriting"
+                      />
                     </div>
                   ))}
 
                   {error && <div className="text-red-500 text-sm">{error}</div>}
 
-                  <div className="flex gap-3 pt-2">
+                  <div className="flex gap-3">
                     <button
                       onClick={() => {
                         setCart([]);
@@ -296,9 +238,9 @@ export default function Delivery() {
                     <button
                       disabled={status === "loading"}
                       onClick={save}
-                      className="flex-1 bg-brand-violet disabled:opacity-50 text-white rounded-xl py-2"
+                      className="flex-1 bg-brand-violet text-white rounded-xl py-2 flex items-center justify-center gap-2"
                     >
-                      Tasdiqlash
+                      <FiCheck /> Tasdiqlash
                     </button>
                   </div>
                 </>
@@ -311,13 +253,11 @@ export default function Delivery() {
                     <FiLoader className="animate-spin" size={28} />
                   </motion.div>
                 )}
-
                 {status === "success" && (
                   <motion.div className="text-center text-green-600 font-medium">
                     ✅ Saqlandi
                   </motion.div>
                 )}
-
                 {status === "error" && (
                   <motion.div className="text-center text-red-600 font-medium">
                     ❌ Xatolik
