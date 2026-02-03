@@ -25,7 +25,10 @@ export default function Nurse() {
   /* ===================== */
 
   const formatName = (v) =>
-    v.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+    v
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
 
   const medicineInCart = (id) =>
     cart.find((i) => i.type === "medicine" && i._id === id);
@@ -39,7 +42,7 @@ export default function Nurse() {
   );
 
   /* ===================== */
-  /* FETCH */
+  /* FETCH (REFRESH SYNC) */
   /* ===================== */
   useEffect(() => {
     const load = async () => {
@@ -55,8 +58,21 @@ export default function Nurse() {
       );
       setServices(s.data);
     };
+
     load();
   }, []);
+
+  /* ===================== */
+  /* CART SAFETY (DB’da yo‘q dori bo‘lsa) */
+  /* ===================== */
+  useEffect(() => {
+    setCart((c) =>
+      c.filter((i) => {
+        if (i.type !== "medicine") return true;
+        return medicines.some((m) => m._id === i._id);
+      }),
+    );
+  }, [medicines]);
 
   /* ===================== */
   /* MEDICINES */
@@ -141,7 +157,7 @@ export default function Nurse() {
       const orderId = res.data.orderId;
       window.open(`/nurse/check/${orderId}`, "_blank");
 
-      // UI’da real-time kamaytirish
+      // 🔥 REAL-TIME UI UPDATE
       setMedicines((prev) =>
         prev.map((m) => {
           const used = cart.find(
@@ -162,10 +178,10 @@ export default function Nurse() {
   };
 
   /* ===================== */
-  /* 🔥 ENTER HOTKEY (PC) */
+  /* ⌨️ ENTER (PC) */
   /* ===================== */
   useEffect(() => {
-    const onKeyDown = (e) => {
+    const onKey = (e) => {
       if (e.key !== "Enter") return;
       if (blocking) return;
 
@@ -177,8 +193,8 @@ export default function Nurse() {
       }
     };
 
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, [patientName, cart, blocking]);
 
   /* ===================== */

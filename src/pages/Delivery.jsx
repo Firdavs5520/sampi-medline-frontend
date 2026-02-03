@@ -38,13 +38,13 @@ export default function Delivery() {
   const [error, setError] = useState("");
 
   /* ===================== */
-  /* FETCH */
+  /* FETCH MEDICINES */
   /* ===================== */
   const loadMedicines = async () => {
     try {
       setLoading(true);
       const res = await api.get("/medicines/for-delivery");
-      setMedicines(res.data);
+      setMedicines(res.data || []);
     } catch {
       setError("Dorilarni yuklashda xatolik");
     } finally {
@@ -87,7 +87,7 @@ export default function Delivery() {
     );
 
   /* ===================== */
-  /* SAVE */
+  /* SAVE — BULK DELIVERY */
   /* ===================== */
   const save = async () => {
     if (cart.length === 0) {
@@ -99,12 +99,12 @@ export default function Delivery() {
       setStatus("loading");
       setError("");
 
-      for (const m of cart) {
-        await api.post("/medicines/delivery", {
+      await api.post("/medicines/delivery", {
+        items: cart.map((m) => ({
           medicineId: m._id,
           quantity: m.addQty,
-        });
-      }
+        })),
+      });
 
       setStatus("success");
       setCart([]);
@@ -114,7 +114,7 @@ export default function Delivery() {
     } catch (e) {
       console.error(e);
       setStatus("error");
-      setError("Saqlashda xatolik");
+      setError(e?.response?.data?.message || "Saqlashda xatolik");
       setTimeout(() => setStatus(null), 1500);
     }
   };
@@ -124,20 +124,23 @@ export default function Delivery() {
     navigate("/login", { replace: true });
   };
 
+  /* ===================== */
+  /* UI */
+  /* ===================== */
   return (
     <div className="min-h-screen bg-slate-100 pb-[100px]">
       <Navbar />
 
       <main className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
-        {/* HEADER (DESKTOP) */}
-        <div className="hidden sm:flex items-center justify-between">
-          <h1 className="text-xl font-semibold flex items-center gap-2">
-            <FiPackage /> Omborga tovarlar qo‘shish
+        {/* HEADER */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg sm:text-xl font-semibold flex items-center gap-2">
+            <FiPackage /> Omborga dori qo‘shish
           </h1>
 
           <button
             onClick={logout}
-            className="px-4 py-2 rounded-xl bg-brand-red text-white flex items-center gap-2"
+            className="px-3 py-2 rounded-xl bg-brand-red text-white flex items-center gap-2"
           >
             <FiLogOut /> Chiqish
           </button>
@@ -150,8 +153,8 @@ export default function Delivery() {
             {/* ===================== */}
             {/* LEFT — MEDICINES */}
             {/* ===================== */}
-            <div className="bg-white rounded-2xl shadow p-6">
-              <h2 className="font-semibold mb-4">Dorilar ro‘yxati</h2>
+            <div className="bg-white rounded-2xl shadow p-4 sm:p-6">
+              <h2 className="font-semibold mb-4">Dorilar</h2>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 {medicines.map((m) => {
@@ -161,24 +164,24 @@ export default function Delivery() {
                     <button
                       key={m._id}
                       onClick={() => toggleMedicine(m)}
-                      className={`border rounded-xl p-4 text-left transition
+                      className={`border rounded-xl p-3 text-left transition
                         ${
                           selected
                             ? "border-brand-violet bg-violet-50"
                             : "hover:bg-slate-50"
                         }`}
                     >
-                      <div className="font-medium">{m.name}</div>
+                      <div className="font-medium text-sm">{m.name}</div>
                       <div
-                        className={`text-sm ${
+                        className={`text-xs ${
                           m.quantity === 0
-                            ? "text-gray-400 line-through"
+                            ? "text-gray-400"
                             : m.quantity <= m.minLevel
                               ? "text-red-500"
                               : "text-gray-500"
                         }`}
                       >
-                        {m.quantity === 0 ? "Qolmadi" : `${m.quantity} dona`}
+                        {m.quantity === 0 ? "Qolmadi" : `Qoldiq: ${m.quantity}`}
                       </div>
                     </button>
                   );
@@ -189,11 +192,11 @@ export default function Delivery() {
             {/* ===================== */}
             {/* RIGHT — CONFIRM */}
             {/* ===================== */}
-            <div className="bg-white rounded-2xl shadow p-6 space-y-4">
+            <div className="bg-white rounded-2xl shadow p-4 sm:p-6 space-y-4">
               <h2 className="font-semibold">Tasdiqlash</h2>
 
               {cart.length === 0 ? (
-                <div className="text-gray-400">Dorilar tanlanmagan</div>
+                <div className="text-gray-400 text-sm">Dorilar tanlanmagan</div>
               ) : (
                 <>
                   {cart.map((m) => (
@@ -202,7 +205,7 @@ export default function Delivery() {
                       className="border rounded-xl p-3 space-y-2"
                     >
                       <div className="flex justify-between items-center">
-                        <div className="font-medium">{m.name}</div>
+                        <div className="font-medium text-sm">{m.name}</div>
                         <button
                           onClick={() =>
                             setCart(cart.filter((i) => i._id !== m._id))
