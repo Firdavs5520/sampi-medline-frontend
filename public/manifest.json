@@ -2,6 +2,7 @@
   "name": "Sampi Medline",
   "short_name": "Sampi",
   "start_url": "/login",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#0ea5e9",
