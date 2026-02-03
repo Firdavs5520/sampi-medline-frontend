@@ -83,8 +83,8 @@ export default function Check() {
         }
 
         .check-title {
-          font-size: 25px;
-          font-weight: 700;
+          font-size: 23px;
+          font-weight: 900;
           letter-spacing: 0.5px;
         }
 
@@ -94,12 +94,12 @@ export default function Check() {
         }
 
         .text {
-          font-size: 12px;
+          font-size: 16px;
           margin: 2px 0;
         }
 
         .section-title {
-          font-size: 13px;
+          font-size: 18px;
           font-weight: 700;
           margin-top: 4px;
         }
@@ -108,7 +108,7 @@ export default function Check() {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          font-size: 12px;
+          font-size: 16px;
           margin: 2px 0;
         }
 
@@ -121,14 +121,14 @@ export default function Check() {
         .jami {
           display: flex;
           justify-content: space-between;
-          font-size: 14px;
+          font-size: 16px;
           font-weight: 700;
           margin-top: 4px;
         }
 
         .footer {
-          font-size: 11px;
-          margin-top: 6px;
+          font-size: 15px;
+          margin-top: 20px;
         }
       `}</style>
 
@@ -187,7 +187,7 @@ export default function Check() {
         </div>
 
         <div className="divider" />
-        <div className="footer">Doimo sog‘-salomat bo‘ling 🤍</div>
+        <div className="footer">Doimo sog‘-salomat bo‘ling</div>
       </div>
     </>
   );
