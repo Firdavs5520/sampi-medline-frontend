@@ -161,14 +161,11 @@ export default function Delivery() {
 
                   return (
                     <button
+                      type="button"
                       key={m._id}
                       onClick={() => toggleMedicine(m)}
-                      className={`border rounded-xl p-3 text-left transition
-                        ${
-                          selected
-                            ? "border-brand-violet bg-violet-50"
-                            : "hover:bg-slate-50"
-                        }`}
+                      className={`relative z-10 pointer-events-auto border rounded-xl p-3 text-left transition
+    ${selected ? "border-brand-violet bg-violet-50" : "hover:bg-slate-50"}`}
                     >
                       <div className="font-medium text-sm">{m.name}</div>
                       <div
