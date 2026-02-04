@@ -1,10 +1,11 @@
-const CACHE_NAME = "sampi-pwa-v1";
-const ASSETS = ["/", "/index.html", "/manifest.json"];
+const CACHE_NAME = "sampi-pwa-v2";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)),
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(["/", "/index.html", "/manifest.json"])),
   );
 });
 
@@ -24,9 +25,34 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return cached || fetch(event.request);
-    }),
-  );
+  const req = event.request;
+  const url = new URL(req.url);
+
+  // ❌ API so‘rovlar SW’dan o‘tmasin
+  if (url.pathname.startsWith("/api")) {
+    return;
+  }
+
+  // ✅ JS / CSS → DO NOT CACHE (MIME xatosi oldini oladi)
+  if (
+    req.destination === "script" ||
+    req.destination === "style" ||
+    req.destination === "font"
+  ) {
+    event.respondWith(fetch(req));
+    return;
+  }
+
+  // ✅ HTML → cache first
+  if (req.headers.get("accept")?.includes("text/html")) {
+    event.respondWith(
+      caches.match("/index.html").then((cached) => {
+        return cached || fetch(req);
+      }),
+    );
+    return;
+  }
+
+  // default
+  event.respondWith(fetch(req).catch(() => caches.match(req)));
 });
