@@ -1,11 +1,16 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 
 export default function Check() {
   const { orderId } = useParams();
+  const navigate = useNavigate();
+
   const [order, setOrder] = useState(null);
   const [error, setError] = useState(null);
+
+  // 🔥 faqat 1 marta print bo‘lishi uchun
+  const printedRef = useRef(false);
 
   /* ===================== */
   /* FETCH ORDER */
@@ -24,32 +29,32 @@ export default function Check() {
   }, [orderId]);
 
   /* ===================== */
-  /* AUTO PRINT + CLOSE */
+  /* AUTO PRINT (NO BUTTON) */
   /* ===================== */
   useEffect(() => {
     if (!order) return;
+    if (printedRef.current) return;
 
-    localStorage.setItem("printStatus", "pending");
+    printedRef.current = true;
 
-    const mql = window.matchMedia("print");
-    const onChange = (e) => {
-      if (!e.matches) {
-        localStorage.setItem("printStatus", "success");
-        window.close();
-      }
+    const afterPrint = () => {
+      window.removeEventListener("afterprint", afterPrint);
+      // print tugagach orqaga qaytadi (PWA ichida)
+      navigate(-1);
     };
 
-    mql.addEventListener("change", onChange);
+    window.addEventListener("afterprint", afterPrint);
 
-    setTimeout(() => {
-      window.focus();
+    // ozgina delay — layout to‘liq chizilsin
+    const timer = setTimeout(() => {
       window.print();
     }, 300);
 
     return () => {
-      mql.removeEventListener("change", onChange);
+      clearTimeout(timer);
+      window.removeEventListener("afterprint", afterPrint);
     };
-  }, [order]);
+  }, [order, navigate]);
 
   if (error) return <div>{error}</div>;
   if (!order) return <div>Yuklanmoqda…</div>;
@@ -58,7 +63,9 @@ export default function Check() {
 
   return (
     <>
-      {/* PRINT STYLE */}
+      {/* ===================== */}
+      {/* PRINT STYLE (58mm) */}
+      {/* ===================== */}
       <style>{`
         @page {
           size: 58mm auto;
@@ -132,6 +139,9 @@ export default function Check() {
         }
       `}</style>
 
+      {/* ===================== */}
+      {/* CHECK CONTENT */}
+      {/* ===================== */}
       <div className="check">
         <div className="check-title">SAMPI MEDLINE</div>
 
